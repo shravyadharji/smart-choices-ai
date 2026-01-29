@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,11 @@ import {
   GraduationCap,
   Target,
   CheckCircle,
-  XCircle
+  XCircle,
+  Sparkles
 } from "lucide-react";
+import { AIInsightCard } from "@/components/ai/AIInsightCard";
+import { useAIInsight } from "@/hooks/useAIInsight";
 
 const careers = [
   {
@@ -97,9 +100,30 @@ const careers = [
 const CareerComparison = () => {
   const [career1, setCareer1] = useState<string>("");
   const [career2, setCareer2] = useState<string>("");
+  const { content: aiInsight, isLoading, error, fetchInsight, reset } = useAIInsight();
 
   const selectedCareer1 = careers.find(c => c.id === career1);
   const selectedCareer2 = careers.find(c => c.id === career2);
+
+  useEffect(() => {
+    if (selectedCareer1 && selectedCareer2) {
+      fetchInsight("career_compare", {
+        career1: selectedCareer1,
+        career2: selectedCareer2,
+      });
+    } else {
+      reset();
+    }
+  }, [career1, career2]);
+
+  const handleRefresh = () => {
+    if (selectedCareer1 && selectedCareer2) {
+      fetchInsight("career_compare", {
+        career1: selectedCareer1,
+        career2: selectedCareer2,
+      });
+    }
+  };
 
   const renderComparisonRow = (label: string, value1: any, value2: any, icon: React.ReactNode) => (
     <div className="grid grid-cols-3 gap-4 py-4 border-b border-border">
@@ -167,6 +191,7 @@ const CareerComparison = () => {
 
           {/* Comparison Table */}
           {selectedCareer1 && selectedCareer2 ? (
+            <>
             <div className="glass-card rounded-2xl p-6 overflow-x-auto">
               {/* Header */}
               <div className="grid grid-cols-3 gap-4 pb-4 border-b-2 border-primary/20 mb-4">
@@ -311,6 +336,17 @@ const CareerComparison = () => {
                 <div className="text-sm text-foreground">{selectedCareer2.futureScope}</div>
               </div>
             </div>
+
+            {/* AI Insight Section */}
+            <AIInsightCard
+              title="AI Career Comparison Analysis"
+              content={aiInsight}
+              isLoading={isLoading}
+              error={error}
+              onRefresh={handleRefresh}
+              className="mt-6"
+            />
+          </>
           ) : (
             <div className="glass-card rounded-2xl p-12 text-center">
               <GitCompare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />

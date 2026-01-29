@@ -14,8 +14,11 @@ import {
   Star,
   ArrowRight,
   FileCheck,
-  Calendar
+  Calendar,
+  Loader2
 } from "lucide-react";
+import { AIInsightCard } from "@/components/ai/AIInsightCard";
+import { useAIInsight } from "@/hooks/useAIInsight";
 
 const careerSuggestions = [
   {
@@ -92,6 +95,8 @@ const entranceExams = [
 
 const Recommendations = () => {
   const [assessmentData, setAssessmentData] = useState<any>(null);
+  const [selectedCareer, setSelectedCareer] = useState<typeof careerSuggestions[0] | null>(null);
+  const { content: aiInsight, isLoading, error, fetchInsight, reset } = useAIInsight();
 
   useEffect(() => {
     const data = localStorage.getItem("assessmentData");
@@ -99,6 +104,31 @@ const Recommendations = () => {
       setAssessmentData(JSON.parse(data));
     }
   }, []);
+
+  const handleCareerClick = (career: typeof careerSuggestions[0]) => {
+    setSelectedCareer(career);
+    fetchInsight("career_explain", {
+      title: career.title,
+      description: career.description,
+      salary: career.salary,
+      growth: career.growth,
+      skills: career.skills,
+      companies: career.companies,
+    });
+  };
+
+  const handleRefresh = () => {
+    if (selectedCareer) {
+      fetchInsight("career_explain", {
+        title: selectedCareer.title,
+        description: selectedCareer.description,
+        salary: selectedCareer.salary,
+        growth: selectedCareer.growth,
+        skills: selectedCareer.skills,
+        companies: selectedCareer.companies,
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -127,7 +157,13 @@ const Recommendations = () => {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {careerSuggestions.map((career) => (
-                <div key={career.id} className="glass-card rounded-2xl p-6 hover:shadow-lg transition-all">
+                <div 
+                  key={career.id} 
+                  className={`glass-card rounded-2xl p-6 hover:shadow-lg transition-all cursor-pointer border-2 ${
+                    selectedCareer?.id === career.id ? "border-secondary" : "border-transparent"
+                  }`}
+                  onClick={() => handleCareerClick(career)}
+                >
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-display text-xl font-semibold text-foreground">
                       {career.title}
@@ -164,6 +200,19 @@ const Recommendations = () => {
                 </div>
               ))}
             </div>
+
+            {/* AI Career Insight */}
+            {(selectedCareer || isLoading) && (
+              <AIInsightCard
+                title={selectedCareer ? `AI Analysis: ${selectedCareer.title}` : "AI Analysis"}
+                content={aiInsight}
+                isLoading={isLoading}
+                error={error}
+                onRefresh={handleRefresh}
+                className="mt-6"
+              />
+            )}
+
             <div className="text-center mt-6">
               <Link to="/career-comparison">
                 <Button variant="outline">
