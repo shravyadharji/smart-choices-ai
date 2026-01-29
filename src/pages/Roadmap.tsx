@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,11 @@ import {
   ChevronRight,
   CheckCircle2,
   Clock,
-  Target
+  Target,
+  Sparkles
 } from "lucide-react";
+import { AIInsightCard } from "@/components/ai/AIInsightCard";
+import { useAIInsight } from "@/hooks/useAIInsight";
 
 const careerRoadmaps = {
   "software-engineer": {
@@ -200,8 +203,27 @@ const careerRoadmaps = {
 
 const Roadmap = () => {
   const [selectedCareer, setSelectedCareer] = useState<string>("software-engineer");
+  const { content: aiInsight, isLoading, error, fetchInsight } = useAIInsight();
 
   const roadmap = careerRoadmaps[selectedCareer as keyof typeof careerRoadmaps];
+
+  useEffect(() => {
+    fetchInsight("roadmap", {
+      career: roadmap.title,
+      currentLevel: "12th Grade / Undergraduate",
+      timeline: roadmap.duration,
+      interests: roadmap.years[0].skills.map(s => s.name),
+    });
+  }, [selectedCareer]);
+
+  const handleRefresh = () => {
+    fetchInsight("roadmap", {
+      career: roadmap.title,
+      currentLevel: "12th Grade / Undergraduate",
+      timeline: roadmap.duration,
+      interests: roadmap.years[0].skills.map(s => s.name),
+    });
+  };
 
   const getImportanceColor = (importance: string) => {
     switch (importance) {
@@ -245,6 +267,16 @@ const Roadmap = () => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* AI Personalized Insights */}
+          <AIInsightCard
+            title="AI Personalized Roadmap Insights"
+            content={aiInsight}
+            isLoading={isLoading}
+            error={error}
+            onRefresh={handleRefresh}
+            className="mb-8"
+          />
 
           {/* Roadmap Header */}
           <div className="glass-card rounded-2xl p-6 mb-8 text-center">

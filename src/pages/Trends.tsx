@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { Button } from "@/components/ui/button";
 import { 
   TrendingUp, 
   Flame, 
@@ -12,6 +14,8 @@ import {
   Users,
   Building2
 } from "lucide-react";
+import { AIInsightCard } from "@/components/ai/AIInsightCard";
+import { useAIInsight } from "@/hooks/useAIInsight";
 
 const trendingRoles = [
   { 
@@ -145,6 +149,22 @@ const skillsInDemand = [
 ];
 
 const Trends = () => {
+  const { content: aiInsight, isLoading, error, fetchInsight } = useAIInsight();
+
+  useEffect(() => {
+    fetchInsight("trends", {
+      trends: trendingRoles,
+      industry: "Technology",
+    });
+  }, []);
+
+  const handleRefresh = () => {
+    fetchInsight("trends", {
+      trends: trendingRoles,
+      industry: "Technology",
+    });
+  };
+
   const getTrendIcon = (trend: string) => {
     switch (trend) {
       case "up": return <ArrowUpRight className="w-4 h-4 text-green-500" />;
@@ -171,6 +191,16 @@ const Trends = () => {
               Stay ahead with real-time insights on trending careers, in-demand skills, and growing industries.
             </p>
           </div>
+
+          {/* AI Market Analysis */}
+          <AIInsightCard
+            title="AI Market Trend Analysis"
+            content={aiInsight}
+            isLoading={isLoading}
+            error={error}
+            onRefresh={handleRefresh}
+            className="mb-16"
+          />
 
           {/* Trending Roles */}
           <section className="mb-16">

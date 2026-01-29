@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { 
@@ -19,8 +19,11 @@ import {
   Shield,
   TrendingUp,
   Briefcase,
-  CheckCircle
+  CheckCircle,
+  Sparkles
 } from "lucide-react";
+import { AIInsightCard } from "@/components/ai/AIInsightCard";
+import { useAIInsight } from "@/hooks/useAIInsight";
 
 const colleges = [
   {
@@ -103,9 +106,30 @@ const colleges = [
 const CollegeComparison = () => {
   const [college1, setCollege1] = useState<string>("");
   const [college2, setCollege2] = useState<string>("");
+  const { content: aiInsight, isLoading, error, fetchInsight, reset } = useAIInsight();
 
   const selectedCollege1 = colleges.find(c => c.id === college1);
   const selectedCollege2 = colleges.find(c => c.id === college2);
+
+  useEffect(() => {
+    if (selectedCollege1 && selectedCollege2) {
+      fetchInsight("college_compare", {
+        college1: selectedCollege1,
+        college2: selectedCollege2,
+      });
+    } else {
+      reset();
+    }
+  }, [college1, college2]);
+
+  const handleRefresh = () => {
+    if (selectedCollege1 && selectedCollege2) {
+      fetchInsight("college_compare", {
+        college1: selectedCollege1,
+        college2: selectedCollege2,
+      });
+    }
+  };
 
   const renderRatingBar = (rating: number, color: string) => (
     <div className="flex items-center gap-2">
@@ -174,6 +198,7 @@ const CollegeComparison = () => {
 
           {/* Comparison Content */}
           {selectedCollege1 && selectedCollege2 ? (
+            <>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {[selectedCollege1, selectedCollege2].map((college, index) => (
                 <div key={college.id} className="glass-card rounded-2xl overflow-hidden">
@@ -291,6 +316,17 @@ const CollegeComparison = () => {
                 </div>
               ))}
             </div>
+
+            {/* AI Insight Section */}
+            <AIInsightCard
+              title="AI College Comparison Analysis"
+              content={aiInsight}
+              isLoading={isLoading}
+              error={error}
+              onRefresh={handleRefresh}
+              className="mt-6"
+            />
+            </>
           ) : (
             <div className="glass-card rounded-2xl p-12 text-center">
               <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
