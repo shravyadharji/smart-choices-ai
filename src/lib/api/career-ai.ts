@@ -6,12 +6,51 @@ export type AIRequestType =
   | "college_compare" 
   | "roadmap" 
   | "eligibility" 
-  | "trends";
+  | "trends"
+  | "recommendations";
 
 export interface AIResponse {
   success: boolean;
   content?: string;
   error?: string;
+}
+
+export interface CareerRecommendation {
+  id: number;
+  title: string;
+  match: number;
+  description: string;
+  salary: string;
+  growth: string;
+  skills: string[];
+  companies: string[];
+  reasoning: string;
+  jobRoles: string[];
+}
+
+export interface CollegeRecommendation {
+  id: number;
+  name: string;
+  location: string;
+  ranking: string;
+  fees: string;
+  cutoff: string;
+  placement: string;
+  forCareers: string[];
+  image: string;
+}
+
+export interface EntranceExam {
+  name: string;
+  date: string;
+  eligibility: string;
+  forColleges: string[];
+}
+
+export interface RecommendationsData {
+  careers: CareerRecommendation[];
+  colleges: CollegeRecommendation[];
+  entranceExams: EntranceExam[];
 }
 
 export async function getAIInsight(
@@ -86,4 +125,71 @@ export async function analyzeTrends(
   industry?: string
 ): Promise<AIResponse> {
   return getAIInsight("trends", { trends, industry });
+}
+
+export interface AssessmentData {
+  interests: string[];
+  skills: string[];
+  academicBackground: string;
+  locationPreference: string;
+  careerGoals: string;
+  preferredWorkStyle: string;
+  salaryExpectation: string;
+}
+
+export async function getPersonalizedRecommendations(
+  assessmentData: AssessmentData
+): Promise<{ success: boolean; data?: RecommendationsData; error?: string }> {
+  try {
+    const response = await getAIInsight("recommendations", assessmentData as unknown as Record<string, unknown>);
+    
+    if (!response.success || !response.content) {
+      return { success: false, error: response.error || "Failed to get recommendations" };
+    }
+
+    // Parse the JSON response
+    try {
+      // Clean up the response - remove any markdown code blocks if present
+      let content = response.content.trim();
+      if (content.startsWith("```json")) {
+        content = content.slice(7);
+      }
+      if (content.startsWith("```")) {
+        content = content.slice(3);
+      }
+      if (content.endsWith("```")) {
+        content = content.slice(0, -3);
+      }
+      content = content.trim();
+
+      const data = JSON.parse(content) as RecommendationsData;
+      
+      // Add default images if not provided
+      data.colleges = data.colleges.map((college, index) => ({
+        ...college,
+        image: college.image || getDefaultCollegeImage(index),
+      }));
+
+      return { success: true, data };
+    } catch (parseError) {
+      console.error("Failed to parse AI response:", parseError, response.content);
+      return { success: false, error: "Failed to parse recommendations" };
+    }
+  } catch (err) {
+    console.error("Recommendations request failed:", err);
+    return { 
+      success: false, 
+      error: err instanceof Error ? err.message : "Failed to get recommendations" 
+    };
+  }
+}
+
+function getDefaultCollegeImage(index: number): string {
+  const images = [
+    "https://images.unsplash.com/photo-1562774053-701939374585?w=400&q=80",
+    "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=400&q=80",
+    "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&q=80",
+    "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?w=400&q=80",
+  ];
+  return images[index % images.length];
 }
