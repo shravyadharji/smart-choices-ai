@@ -314,6 +314,9 @@ serve(async (req) => {
 
     console.log(`Processing ${type} request from ${clientIP.slice(0, 10)}...`);
 
+    // Use higher token limit for recommendations to avoid truncation
+    const maxTokens = type === "recommendations" ? 2500 : 1024;
+    
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -328,7 +331,7 @@ serve(async (req) => {
         ],
         stream: false,
         temperature: 0.7,
-        max_tokens: 1024,
+        max_tokens: maxTokens,
       }),
     });
 

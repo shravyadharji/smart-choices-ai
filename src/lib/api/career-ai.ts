@@ -162,7 +162,27 @@ export async function getPersonalizedRecommendations(
       }
       content = content.trim();
 
+      // Try to extract JSON if there's extra text
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        content = jsonMatch[0];
+      }
+
+      // Try to repair truncated JSON by ensuring arrays and objects are closed
+      content = repairTruncatedJson(content);
+
       const data = JSON.parse(content) as RecommendationsData;
+      
+      // Validate required fields exist
+      if (!data.careers || !Array.isArray(data.careers)) {
+        data.careers = [];
+      }
+      if (!data.colleges || !Array.isArray(data.colleges)) {
+        data.colleges = [];
+      }
+      if (!data.entranceExams || !Array.isArray(data.entranceExams)) {
+        data.entranceExams = [];
+      }
       
       // Add default images if not provided
       data.colleges = data.colleges.map((college, index) => ({
@@ -173,7 +193,7 @@ export async function getPersonalizedRecommendations(
       return { success: true, data };
     } catch (parseError) {
       console.error("Failed to parse AI response:", parseError, response.content);
-      return { success: false, error: "Failed to parse recommendations" };
+      return { success: false, error: "Failed to parse recommendations. Please try again." };
     }
   } catch (err) {
     console.error("Recommendations request failed:", err);
@@ -192,4 +212,57 @@ function getDefaultCollegeImage(index: number): string {
     "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?w=400&q=80",
   ];
   return images[index % images.length];
+}
+
+// Attempt to repair truncated JSON by closing open brackets
+function repairTruncatedJson(json: string): string {
+  let result = json.trim();
+  
+  // Count open/close brackets
+  let openBraces = 0;
+  let openBrackets = 0;
+  let inString = false;
+  let escapeNext = false;
+  
+  for (const char of result) {
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+    if (char === '\\') {
+      escapeNext = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    
+    if (char === '{') openBraces++;
+    else if (char === '}') openBraces--;
+    else if (char === '[') openBrackets++;
+    else if (char === ']') openBrackets--;
+  }
+  
+  // If we're in an unclosed string, try to close it
+  if (inString) {
+    result += '"';
+  }
+  
+  // Remove trailing incomplete values (like incomplete strings or numbers)
+  result = result.replace(/,\s*"[^"]*$/, '');
+  result = result.replace(/,\s*$/, '');
+  
+  // Close any open brackets/braces
+  while (openBrackets > 0) {
+    result += ']';
+    openBrackets--;
+  }
+  while (openBraces > 0) {
+    result += '}';
+    openBraces--;
+  }
+  
+  return result;
 }
